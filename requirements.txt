@@ -1,0 +1,4 @@
+azure-identity>=1.15.0
+azure-mgmt-storagecache>=3.0.0
+azure-core>=1.30.0
+tenacity>=8.2.0
