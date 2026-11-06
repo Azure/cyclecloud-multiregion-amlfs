@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="700" viewBox="0 0 1080 700" role="img" aria-labelledby="title description">
+  <title id="title">Seamless Lustre paths across regions and the shared Blob namespace</title>
+  <desc id="description">Regions A and B both mount their local AMLFS at /lustre. Stage-in exports /lustre/data/run42/input to Blob keys under data/run42/input/ and imports the same prefix at /lustre/data/run42/input in Region B. Stage-out returns /lustre/data/run42/output to that same path in Region A. Applications use identical absolute paths in every region. The example uses a shared Blob container named data and an HSM root of /.</desc>
+  <defs>
+    <marker id="transfer-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 10 5 0 10Z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+  <rect width="1080" height="700" fill="#fff"/>
+  <g font-family="Segoe UI, Arial, sans-serif" fill="#161616">
+    <text x="24" y="34" font-size="23" font-weight="600">The same /lustre paths in every region</text>
+    <text x="24" y="62" font-size="16" fill="#505050">Each region uses local AMLFS; applications keep the same input and output paths.</text>
+
+    <text x="24" y="103" font-size="18" font-weight="600">1. Stage-in: home to Blob to remote</text>
+    <rect x="20" y="121" width="320" height="160" rx="6" fill="#f6fbff" stroke="#0078d4"/>
+    <rect x="380" y="121" width="320" height="160" rx="6" fill="#f3edff" stroke="#7c3aed"/>
+    <rect x="740" y="121" width="320" height="160" rx="6" fill="#f6fbff" stroke="#0078d4"/>
+    <text x="36" y="149" font-size="18" font-weight="600">Region A / home AMLFS</text>
+    <text x="396" y="149" font-size="18" font-weight="600">Shared Blob container: data</text>
+    <text x="756" y="149" font-size="18" font-weight="600">Region B / remote AMLFS</text>
+    <text x="36" y="181" font-size="15">Mount root: /lustre</text>
+    <text x="396" y="181" font-size="15">Blob key (relative to container)</text>
+    <text x="756" y="181" font-size="15">Mount root: /lustre</text>
+    <text x="36" y="216" font-family="monospace" font-size="12">/lustre/data/run42/input/model.dat</text>
+    <text x="396" y="216" font-family="monospace" font-size="12">data/run42/input/model.dat</text>
+    <text x="756" y="216" font-family="monospace" font-size="12">/lustre/data/run42/input/model.dat</text>
+    <text x="36" y="254" font-size="14" fill="#505050">Input prepared at home</text>
+    <text x="396" y="254" font-size="14" fill="#505050">Archive writes / import reads</text>
+    <text x="756" y="254" font-size="14" fill="#505050">Application reads regional input</text>
+    <path d="M341 215H376" stroke="#7c3aed" stroke-width="3" marker-end="url(#transfer-arrow)"/>
+    <path d="M701 215H736" stroke="#7c3aed" stroke-width="3" marker-end="url(#transfer-arrow)"/>
+    <rect x="20" y="297" width="1040" height="56" rx="6" fill="#faf7ff" stroke="#d4c2fa"/>
+    <text x="36" y="321" font-size="16">Archive prefix = import prefix:</text>
+    <text x="300" y="321" font-family="monospace" font-size="16" fill="#7c3aed">/data/run42/input</text>
+    <text x="36" y="342" font-size="14" fill="#505050">Archive and import preserve the relative path; input is available at the same /lustre path in Region B.</text>
+
+    <text x="24" y="397" font-size="18" font-weight="600">2. Stage-out: remote to Blob to home</text>
+    <rect x="20" y="415" width="320" height="160" rx="6" fill="#f6fbff" stroke="#0078d4"/>
+    <rect x="380" y="415" width="320" height="160" rx="6" fill="#f3edff" stroke="#7c3aed"/>
+    <rect x="740" y="415" width="320" height="160" rx="6" fill="#f6fbff" stroke="#0078d4"/>
+    <text x="36" y="443" font-size="18" font-weight="600">Region A / home AMLFS</text>
+    <text x="396" y="443" font-size="18" font-weight="600">Shared Blob container: data</text>
+    <text x="756" y="443" font-size="18" font-weight="600">Region B / remote AMLFS</text>
+    <text x="36" y="475" font-size="15">Mount root: /lustre</text>
+    <text x="396" y="475" font-size="15">Blob key (relative to container)</text>
+    <text x="756" y="475" font-size="15">Mount root: /lustre</text>
+    <text x="36" y="510" font-family="monospace" font-size="12">/lustre/data/run42/output/result.dat</text>
+    <text x="396" y="510" font-family="monospace" font-size="12">data/run42/output/result.dat</text>
+    <text x="756" y="510" font-family="monospace" font-size="12">/lustre/data/run42/output/result.dat</text>
+    <text x="36" y="548" font-size="14" fill="#505050">Results returned to home</text>
+    <text x="396" y="548" font-size="14" fill="#505050">Archive writes / import reads</text>
+    <text x="756" y="548" font-size="14" fill="#505050">Application writes regional output</text>
+    <path d="M736 509H704" stroke="#7c3aed" stroke-width="3" marker-end="url(#transfer-arrow)"/>
+    <path d="M376 509H344" stroke="#7c3aed" stroke-width="3" marker-end="url(#transfer-arrow)"/>
+    <rect x="20" y="591" width="1040" height="56" rx="6" fill="#faf7ff" stroke="#d4c2fa"/>
+    <text x="36" y="615" font-size="16">Archive prefix = import prefix:</text>
+    <text x="300" y="615" font-family="monospace" font-size="16" fill="#7c3aed">/data/run42/output</text>
+    <text x="36" y="636" font-size="14" fill="#505050">The output returns to the same /lustre path at home, ready for the next application step.</text>
+    <text x="24" y="680" font-size="15" fill="#505050">Example HSM layout: container root / maps to AMLFS root /. Workload-owned subtree: data/run42/.</text>
+  </g>
+</svg>

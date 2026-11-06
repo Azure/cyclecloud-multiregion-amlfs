@@ -1,0 +1,42 @@
+{
+  "SUBSCRIPTION_ID": "00000000-0000-0000-0000-000000000000",
+  "REGIONS": {
+    "regionA": {
+      "resource_group": "rg-region-a",
+      "filesystem": "amlfs-region-a",
+      "location": "<region-a-azure-location>",
+      "mountpoint": "/lustre"
+    },
+    "regionB": {
+      "resource_group": "rg-region-b",
+      "filesystem": "amlfs-region-b",
+      "location": "<region-b-azure-location>",
+      "mountpoint": "/lustre"
+    },
+    "regionC": {
+      "resource_group": "rg-region-c",
+      "filesystem": "amlfs-region-c",
+      "location": "<region-c-azure-location>",
+      "mountpoint": "/lustre"
+    },
+    "regionD": {
+      "resource_group": "rg-region-d",
+      "filesystem": "amlfs-region-d",
+      "location": "<region-d-azure-location>",
+      "mountpoint": "/lustre"
+    }
+  },
+  "HOME_REGION": "regionA",
+  "PARTITION_REGIONS": {
+    "hpc": "regionA",
+    "htc": "regionA",
+    "gpu": "regionA",
+    "dynamic": "regionA",
+    "multi-regionB": "regionB",
+    "multi-regionC": "regionC",
+    "multi-regionD": "regionD"
+  },
+  "STATE_DIR": "/sched/cyclecloud-multi-region",
+  "STAGEIN_CONFLICT_MODE": "Skip",
+  "STAGEOUT_CONFLICT_MODE": "OverwriteAlways"
+}

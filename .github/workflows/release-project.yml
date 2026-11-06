@@ -1,0 +1,45 @@
+name: Release cluster-init project
+
+on:
+  push:
+    tags: ['[0-9]*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-project-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/tests.yml
+  build:
+    uses: ./.github/workflows/build-project.yml
+    with:
+      release_tag: ${{ github.ref_name }}
+  release:
+    needs: [checks, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: cluster-init-project
+          path: dist
+      - name: Publish verified project assets
+        working-directory: dist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          sha256sum --check -- *.sha256
+          gh release create "$RELEASE_TAG" --verify-tag \
+            --title "Azure CycleCloud Multi-region plugin for AMLFS $RELEASE_TAG" \
+            --generate-notes --prerelease \
+            -- *.tar.gz *.sha256
