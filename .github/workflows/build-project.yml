@@ -1,0 +1,44 @@
+name: Build cluster-init project
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      release_tag:
+        description: Optional tag that must match the project version
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build versioned native project
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || '' }}
+        run: python scripts/build_project.py --release-dir dist --tag "$RELEASE_TAG"
+      - name: Check release checksum
+        working-directory: dist
+        run: sha256sum --check -- *.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cluster-init-project
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 14

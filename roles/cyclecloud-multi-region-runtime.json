@@ -1,0 +1,21 @@
+{
+  "Name": "Azure CycleCloud Multi-region Runtime",
+  "IsCustom": true,
+  "Description": "Manage job-scoped AMLFS exports and imports for Azure CycleCloud data staging; no infrastructure provisioning or Blob data-plane access.",
+  "Actions": [
+    "Microsoft.StorageCache/amlFilesystems/read",
+    "Microsoft.StorageCache/amlFilesystems/autoExportJobs/read",
+    "Microsoft.StorageCache/amlFilesystems/autoExportJobs/write",
+    "Microsoft.StorageCache/amlFilesystems/autoExportJobs/delete",
+    "Microsoft.StorageCache/amlFilesystems/importJobs/read",
+    "Microsoft.StorageCache/amlFilesystems/importJobs/write",
+    "Microsoft.StorageCache/amlFilesystems/importJobs/delete",
+    "Microsoft.StorageCache/locations/ascOperations/read"
+  ],
+  "NotActions": [],
+  "DataActions": [],
+  "NotDataActions": [],
+  "AssignableScopes": [
+    "/subscriptions/<subscription-id>/resourceGroups/<resource-group>"
+  ]
+}

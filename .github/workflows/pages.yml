@@ -1,0 +1,77 @@
+name: Publish private documentation
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'docs/**'
+      - 'website/**'
+      - 'ci/pages.py'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: private-github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      site_url: ${{ steps.privacy.outputs.site_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # Never auto-enable Pages: repository privacy does not make the site private.
+      - name: Require private repository and Pages visibility
+        id: privacy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ci/pages.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - name: Build for the private Pages URL
+        working-directory: website
+        env:
+          DOCUSAURUS_SITE_URL: ${{ steps.privacy.outputs.site_url }}
+        run: npm ci && npm test && npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/build
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Recheck privacy and URL immediately before deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SITE_URL: ${{ needs.build.outputs.site_url }}
+        run: python3 ci/pages.py --expected-url "$EXPECTED_SITE_URL"
+      - name: Publish private Pages site
+        id: deployment
+        uses: actions/deploy-pages@v4

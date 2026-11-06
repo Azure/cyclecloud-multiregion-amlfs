@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Per-cluster config (never commit real resource IDs)
+amlfs_flow/config.py
+
+# State / logs
+*.lock
+*.log
+/var/spool/slurm/bb/
+state/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Build
+build/
+dist/
+.coverage
+htmlcov/
+
+# Generated native CycleCloud payload; scripts/build_project.py is authoritative.
+wheelhouse/
+blobs/
+.test-work/
+
+# Documentation website
+website/node_modules/
+website/.docusaurus/

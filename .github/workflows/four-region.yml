@@ -1,0 +1,177 @@
+name: Four-region Azure CycleCloud scenario
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Deploy a disposable scenario or clean up a retained scenario
+        type: choice
+        options: [deploy, cleanup]
+        default: deploy
+        required: true
+      retain:
+        description: Retain billable infrastructure for investigation (manual cleanup required)
+        type: boolean
+        default: false
+      resource_group:
+        description: Owned cyclecloud-multi-region-ci-RUN_ID-ATTEMPT group to delete (cleanup only)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: four-region-azure-cyclecloud
+  cancel-in-progress: false
+
+jobs:
+  scenario:
+    if: (github.event_name == 'schedule' || inputs.operation == 'deploy') && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    environment: four-region
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      FOUR_REGION_CONFIG: ${{ vars.FOUR_REGION_CONFIG }}
+      HSM_PRINCIPAL_ID: ${{ vars.HSM_PRINCIPAL_ID }}
+      PYTHONUNBUFFERED: '1'
+    outputs:
+      configuration: ${{ steps.configuration.outcome }}
+      authentication: ${{ steps.login.outcome }}
+      build: ${{ steps.project.outcome }}
+      workspace: ${{ steps.workspace.outcome }}
+      installation: ${{ steps.bootstrap.outcome }}
+      workloads: ${{ steps.workloads.outcome }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Set scenario workspace
+        run: printf 'WORK_DIR=%s/four-region\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Validate deployment configuration
+        id: configuration
+        run: |
+          set -euo pipefail
+          python ci/four_region.py validate
+          python -c "import sys; sys.path.insert(0, 'ci'); from four_region import UPSTREAM_COMMIT; print('upstream_commit=' + UPSTREAM_COMMIT)" >> "$GITHUB_OUTPUT"
+      - name: Check out the reviewed upstream deployment commit
+        uses: actions/checkout@v4
+        with:
+          repository: Azure/ai-infrastructure-on-azure
+          ref: ${{ steps.configuration.outputs.upstream_commit }}
+          path: upstream-deployer
+          persist-credentials: false
+      - name: Log in to Azure with OIDC
+        id: login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Build native project
+        id: project
+        run: |
+          set -euo pipefail
+          umask 077
+          python scripts/build_project.py
+      - name: Deploy Workspace with VM-tail installation hook
+        id: workspace
+        timeout-minutes: 60
+        env:
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+          CCWS_ADMIN_PASSWORD: ${{ secrets.CCWS_ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python ci/four_region.py workspace \
+            --upstream "$GITHUB_WORKSPACE/upstream-deployer" --work-dir "$WORK_DIR"
+      - name: Refresh Azure login before waiting for VM bootstrap
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Wait for VM-side AMLFS provisioning and project installation
+        id: bootstrap
+        timeout-minutes: 200
+        run: python ci/four_region.py bootstrap --work-dir "$WORK_DIR"
+      - name: Refresh Azure login before regional jobs
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Require successful hpcadmin jobs and data round trips in every region
+        id: workloads
+        timeout-minutes: 120
+        run: python ci/four_region.py jobs --work-dir "$WORK_DIR"
+  cleanup:
+    needs: scenario
+    if: always() && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && (github.event_name == 'schedule' || inputs.operation == 'cleanup' || !inputs.retain)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    environment: four-region
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Log in for cleanup even if deployment or job validation timed out
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Delete only the owned scenario resource group
+        timeout-minutes: 60
+        env:
+          OPERATION: ${{ inputs.operation }}
+          CLEANUP_GROUP: ${{ inputs.resource_group }}
+        run: |
+          set -euo pipefail
+          group="cyclecloud-multi-region-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          if [ "$OPERATION" = cleanup ]; then group="$CLEANUP_GROUP"; fi
+          python ci/four_region.py cleanup --resource-group "$group"
+  report:
+    name: Sanitized result report
+    needs: [scenario, cleanup]
+    if: always() && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Publish decorated summary table
+        env:
+          REPORT_DEPLOY: ${{ github.event_name == 'schedule' || inputs.operation == 'deploy' }}
+          RESULT_CONFIGURATION: ${{ needs.scenario.outputs.configuration }}
+          RESULT_AUTHENTICATION: ${{ needs.scenario.outputs.authentication }}
+          RESULT_BUILD: ${{ needs.scenario.outputs.build }}
+          RESULT_WORKSPACE: ${{ needs.scenario.outputs.workspace }}
+          RESULT_INSTALLATION: ${{ needs.scenario.outputs.installation }}
+          RESULT_WORKLOADS: ${{ needs.scenario.outputs.workloads }}
+          RESULT_SCENARIO: ${{ needs.scenario.result }}
+          RESULT_CLEANUP: ${{ needs.cleanup.result }}
+        run: python ci/report.py
