@@ -72,7 +72,7 @@ jobs:
           persist-credentials: false
       - name: Log in to Azure with OIDC
         id: login
-        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -95,7 +95,7 @@ jobs:
           python ci/four_region.py workspace \
             --upstream "$GITHUB_WORKSPACE/upstream-deployer" --work-dir "$WORK_DIR"
       - name: Refresh Azure login before waiting for VM bootstrap
-        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -105,7 +105,7 @@ jobs:
         timeout-minutes: 200
         run: python ci/four_region.py bootstrap --work-dir "$WORK_DIR"
       - name: Refresh Azure login before regional jobs
-        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -133,7 +133,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Log in for cleanup even if deployment or job validation timed out
-        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
