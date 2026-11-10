@@ -289,6 +289,33 @@ def test_ready_scheduler_without_ssh_identity_fails_explicitly(vm, tmp_path, mon
         vm.wait_scheduler("example-cluster", tmp_path)
 
 
+def test_scheduler_readiness_can_probe_root_and_slurm_only_installation(vm, tmp_path, monkeypatch):
+    key = tmp_path / "cyclecloud.pem"
+    key.touch()
+    monkeypatch.setattr(vm, "KEY", str(key))
+    monkeypatch.setattr(vm, "command", lambda *args, **kwargs: json.dumps([
+        {"Name": "scheduler", "Status": "Ready", "Instance": {"PrivateIp": "192.0.2.4"}},
+    ]))
+    clock = [0]
+    monkeypatch.setattr(vm.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(vm.time, "sleep", lambda seconds: clock.__setitem__(0, clock[0] + seconds))
+    calls = []
+
+    def ssh(address, work, *remote, **kwargs):
+        calls.append(remote)
+        if remote == ("test", "-f", "/opt/cyclecloud-multi-region/installation.json"):
+            raise subprocess.CalledProcessError(1, ["ssh", *remote], stderr="Permission denied")
+        assert remote in (
+            ("sudo", "-n", "test", "-f", "/opt/cyclecloud-multi-region/installation.json"),
+            ("sudo", "-n", "scontrol", "ping"),
+        )
+        return ""
+
+    monkeypatch.setattr(vm, "ssh", ssh)
+    assert vm.wait_scheduler("example-cluster", tmp_path, timeout=30) == "192.0.2.4"
+    assert calls[-1] == ("sudo", "-n", "scontrol", "ping")
+
+
 def test_ssh_uses_cyclecloud_key_but_submits_through_hpcadmin(vm, tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(vm, "command", lambda *args, **kwargs: calls.append((args, kwargs)))

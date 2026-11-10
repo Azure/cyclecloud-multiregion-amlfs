@@ -69,8 +69,8 @@ def wait_scheduler(name, work, timeout=1200):
             if not Path(KEY).is_file():
                 raise ValueError("CycleCloud scheduler SSH identity is unavailable")
             try:
-                # The extension writes this marker only after mounts and hooks are installed.
-                ssh(address, work, "test", "-f", "/opt/cyclecloud-multi-region/installation.json")
+                # The completed-install marker is inside the root/Slurm-only directory.
+                ssh(address, work, "sudo", "-n", "test", "-f", "/opt/cyclecloud-multi-region/installation.json")
                 ssh(address, work, "sudo", "-n", "scontrol", "ping")
                 return address
             except subprocess.SubprocessError:
