@@ -49,10 +49,10 @@ jobs:
       installation: ${{ steps.bootstrap.outcome }}
       workloads: ${{ steps.workloads.outcome }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - name: Set scenario workspace
@@ -64,7 +64,7 @@ jobs:
           python ci/four_region.py validate
           python -c "import sys; sys.path.insert(0, 'ci'); from four_region import UPSTREAM_COMMIT; print('upstream_commit=' + UPSTREAM_COMMIT)" >> "$GITHUB_OUTPUT"
       - name: Check out the reviewed upstream deployment commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: Azure/ai-infrastructure-on-azure
           ref: ${{ steps.configuration.outputs.upstream_commit }}
@@ -72,7 +72,7 @@ jobs:
           persist-credentials: false
       - name: Log in to Azure with OIDC
         id: login
-        uses: azure/login@v2
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -95,7 +95,7 @@ jobs:
           python ci/four_region.py workspace \
             --upstream "$GITHUB_WORKSPACE/upstream-deployer" --work-dir "$WORK_DIR"
       - name: Refresh Azure login before waiting for VM bootstrap
-        uses: azure/login@v2
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -105,7 +105,7 @@ jobs:
         timeout-minutes: 200
         run: python ci/four_region.py bootstrap --work-dir "$WORK_DIR"
       - name: Refresh Azure login before regional jobs
-        uses: azure/login@v2
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -126,14 +126,14 @@ jobs:
     env:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - name: Log in for cleanup even if deployment or job validation timed out
-        uses: azure/login@v2
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -157,10 +157,10 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
       - name: Publish decorated summary table

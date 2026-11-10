@@ -62,7 +62,25 @@ For detailed instructions, follow the advanced guides:
 - [Customize a Slurm template](docs/slurm-template.md) or
   [update an existing cluster](docs/cyclecloud-import.md).
 
+## Contributing
+
+Contributions and suggestions are welcome. See [Contributing](CONTRIBUTING.md)
+for contribution guidelines, the Contributor License Agreement, and testing guidance.
+Please follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+For bug reports and feature requests, see [Support](SUPPORT.md).
+Report security vulnerabilities privately as described in [Security](SECURITY.md),
+not through public GitHub issues.
+
 ## License
 
 Code is licensed under the [MIT license](LICENSE).
 Azure service icons are subject to [Microsoft's icon usage terms](https://learn.microsoft.com/en-us/azure/architecture/icons).
+
+## Trademarks
+
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
+trademarks or logos is subject to and must follow
+[Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/legal/intellectualproperty/trademarks/usage/general).
+Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
+Any use of third-party trademarks or logos are subject to those third-party's policies.
