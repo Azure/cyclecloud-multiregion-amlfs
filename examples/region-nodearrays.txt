@@ -1,0 +1,90 @@
+# FRAGMENTS ONLY: merge into a COMPLETE version-matched Slurm definition.
+# Never import this file on its own or append duplicate existing sections.
+# Setup, parameter definitions, project SourceLocker/Order and scheduler settings:
+# ../docs/slurm-template.md. Runtime region map: regions.json.
+# Requires that guide's default cyclecloud-multiregion-amlfs:default:0.2.0 spec,
+# enabled/compute role and per-region mounts JSON parameters.
+# Preserve existing defaults, identities, native Slurm specs, NFS and autoscaler.
+# Replace example resource names and supply actual regional MGS endpoints as
+# JSON strings: [{"source":"REGION_MGS_IP@tcp0:/lustrefs","mountpoint":"/lustre"}].
+
+# Merge into existing HOME arrays; retain their VM/image/partition settings.
+# Home Region/SubnetId normally come from the original node defaults.
+[[nodearray login]]
+EnableTerminateNotification = true
+    [[[configuration]]]
+    cyclecloud.multi_region.mounts_json = $MultiRegionAMountsJson
+
+[[nodearray hpc]]
+EnableTerminateNotification = true
+    [[[configuration]]]
+    cyclecloud.multi_region.mounts_json = $MultiRegionAMountsJson
+
+[[nodearray htc]]
+EnableTerminateNotification = true
+    [[[configuration]]]
+    cyclecloud.multi_region.mounts_json = $MultiRegionAMountsJson
+
+[[nodearray gpu]]
+EnableTerminateNotification = true
+    [[[configuration]]]
+    cyclecloud.multi_region.mounts_json = $MultiRegionAMountsJson
+
+[[nodearray dynamic]]
+EnableTerminateNotification = true
+    [[[configuration]]]
+    cyclecloud.multi_region.mounts_json = $MultiRegionAMountsJson
+
+# Add remote arrays UNDER THE CLUSTER, before top-level parameter sections.
+# nodearraybase is the upstream abstract native Slurm execute-node definition.
+# Verify $HPCImageName and the VM size are available in each destination region.
+# Use each region's compute subnet, NOT the dedicated AMLFS subnet.
+# Region A-D are logical labels. Location parameters must be real Azure locations
+# matching REGIONS in regions.json, not the literal strings regionA-regionD.
+[[nodearray multi-regionB]]
+Extends = nodearraybase
+Region = $MultiRegionBLocation
+SubnetId = rg-region-b/vnet-region-b/computeSubnet
+MachineType = Standard_D4as_v5
+ImageName = $HPCImageName
+InitialCount = 0
+MaxCount = 1
+EnableTerminateNotification = true
+    [[[configuration]]]
+    slurm.partition = multi-regionB
+    slurm.default_partition = false
+    slurm.hpc = false
+    slurm.use_pcpu = false
+    cyclecloud.multi_region.mounts_json = $MultiRegionBMountsJson
+
+[[nodearray multi-regionC]]
+Extends = nodearraybase
+Region = $MultiRegionCLocation
+SubnetId = rg-region-c/vnet-region-c/computeSubnet
+MachineType = Standard_D4as_v5
+ImageName = $HPCImageName
+InitialCount = 0
+MaxCount = 1
+EnableTerminateNotification = true
+    [[[configuration]]]
+    slurm.partition = multi-regionC
+    slurm.default_partition = false
+    slurm.hpc = false
+    slurm.use_pcpu = false
+    cyclecloud.multi_region.mounts_json = $MultiRegionCMountsJson
+
+[[nodearray multi-regionD]]
+Extends = nodearraybase
+Region = $MultiRegionDLocation
+SubnetId = rg-region-d/vnet-region-d/computeSubnet
+MachineType = Standard_D4as_v5
+ImageName = $HPCImageName
+InitialCount = 0
+MaxCount = 1
+EnableTerminateNotification = true
+    [[[configuration]]]
+    slurm.partition = multi-regionD
+    slurm.default_partition = false
+    slurm.hpc = false
+    slurm.use_pcpu = false
+    cyclecloud.multi_region.mounts_json = $MultiRegionDMountsJson
