@@ -20,11 +20,12 @@ def site():
                 html_url="https://example.pages.github.io/")
 
 
-def test_private_site_supports_root_and_project_urls(pages):
-    repository = {"private": True, "visibility": "private"}
+@pytest.mark.parametrize("private", [True, False])
+def test_site_supports_root_and_project_urls(pages, private):
+    repository = {"private": private, "visibility": "private" if private else "public"}
     for url in ("https://example.pages.github.io/", "https://docs.example.com/project/"):
-        settings = dict(site(), html_url=url)
-        assert pages.private_site_url(repository, settings, url) == url
+        settings = dict(site(), public=not private, html_url=url)
+        assert pages.validated_site_url(repository, settings, url) == url
 
 
 @pytest.mark.parametrize("repository,settings", [
@@ -35,10 +36,15 @@ def test_private_site_supports_root_and_project_urls(pages):
     ({"private": True, "visibility": "private"}, dict(site(), public=True)),
     ({"private": True, "visibility": "private"}, dict(site(), public="false")),
     ({"private": True, "visibility": "private"}, dict(site(), build_type="legacy")),
+    ({"private": False, "visibility": "public"}, dict(site(), public="true")),
+    ({"private": False, "visibility": "public"}, dict(site(), public=True, build_type="legacy")),
+    ({"private": True, "visibility": "public"}, dict(site(), public=True)),
+    ({"private": False, "visibility": "private"}, dict(site(), public=True)),
+    ({"visibility": "public"}, dict(site(), public=True)),
 ])
-def test_unknown_or_public_visibility_fails_closed(pages, repository, settings):
+def test_unknown_or_mismatched_visibility_fails_closed(pages, repository, settings):
     with pytest.raises(ValueError):
-        pages.private_site_url(repository, settings)
+        pages.validated_site_url(repository, settings)
 
 
 @pytest.mark.parametrize("url", [
@@ -48,19 +54,22 @@ def test_unknown_or_public_visibility_fails_closed(pages, repository, settings):
 ])
 def test_invalid_site_url_is_rejected(pages, url):
     with pytest.raises(ValueError):
-        pages.private_site_url({"private": True, "visibility": "private"}, dict(site(), html_url=url))
+        pages.validated_site_url({"private": True, "visibility": "private"}, dict(site(), html_url=url))
 
 
-def test_url_change_between_build_and_deploy_blocks_publication(pages):
+@pytest.mark.parametrize("private", [True, False])
+def test_url_change_between_build_and_deploy_blocks_publication(pages, private):
     with pytest.raises(ValueError, match="changed"):
-        pages.private_site_url(
-            {"private": True, "visibility": "private"}, site(), "https://old.example.com/",
+        pages.validated_site_url(
+            {"private": private, "visibility": "private" if private else "public"},
+            dict(site(), public=not private), "https://old.example.com/",
         )
 
 
 @pytest.mark.parametrize("status", [200, 403, 404])
+@pytest.mark.parametrize("private", [True, False])
 def test_cli_reads_existing_settings_without_creating_or_changing_site(
-        pages, monkeypatch, tmp_path, capsys, status):
+        pages, monkeypatch, tmp_path, capsys, status, private):
     output = tmp_path / "output"
     summary = tmp_path / "summary"
     monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repository")
@@ -69,14 +78,16 @@ def test_cli_reads_existing_settings_without_creating_or_changing_site(
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
     monkeypatch.setattr(sys, "argv", ["pages.py"])
     calls = []
+    url = ("https://example.pages.github.io/" if private
+           else "https://azure.github.io/cyclecloud-multiregion-amlfs/")
 
     def api(command, **kwargs):
         calls.append(command)
         if command[-1].endswith("/pages"):
             if status != 200:
                 raise subprocess.CalledProcessError(1, command, stderr=f"gh: Error (HTTP {status})")
-            return json.dumps(site())
-        return json.dumps({"private": True, "visibility": "private"})
+            return json.dumps(dict(site(), public=not private, html_url=url))
+        return json.dumps({"private": private, "visibility": "private" if private else "public"})
 
     monkeypatch.setattr(pages.subprocess, "check_output", api)
     assert pages.main() == (0 if status == 200 else 1)
@@ -85,14 +96,14 @@ def test_cli_reads_existing_settings_without_creating_or_changing_site(
         ["gh", "api", "repos/owner/repository/pages"],
     ]
     if status == 200:
-        assert output.read_text() == "site_url=https://example.pages.github.io/\n"
+        assert output.read_text() == f"site_url={url}\n"
         assert not summary.exists()
     else:
         assert not output.exists()
         error = capsys.readouterr().err
-        assert "::error title=Private Pages publication blocked::" in error
+        assert "::error title=Pages publication blocked::" in error
         assert "https://github.com/owner/repository/settings/pages" in error
-        assert "Source = GitHub Actions and Visibility = Private" in error
+        assert "Source = GitHub Actions and visibility matching the repository" in error
         assert "pages: read" in error
         assert "returned non-zero exit status" not in error
         assert "No Pages site was created or made public." in summary.read_text()

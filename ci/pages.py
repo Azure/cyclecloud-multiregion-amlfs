@@ -2,7 +2,7 @@
 # Copyright (c) Microsoft Corporation.
 # SPDX-License-Identifier: MIT
 
-"""Require an existing private GitHub Pages site before building or publishing."""
+"""Validate an existing GitHub Pages site before building or publishing."""
 
 import argparse
 import json
@@ -13,12 +13,15 @@ import sys
 from urllib.parse import urlsplit
 
 
-def private_site_url(repository, pages, expected_url=None):
-    if repository.get("private") is not True or repository.get("visibility") != "private":
-        raise ValueError("Refusing to publish documentation from a non-private repository")
-    if pages.get("public") is not False or pages.get("build_type") != "workflow":
+def validated_site_url(repository, pages, expected_url=None):
+    private = repository.get("private")
+    if not ((private is True and repository.get("visibility") == "private")
+            or (private is False and repository.get("visibility") == "public")):
+        raise ValueError("Repository visibility must be explicitly private or public")
+    if pages.get("public") is not (not private) or pages.get("build_type") != "workflow":
         raise ValueError(
-            "Configure Settings > Pages with Private visibility and GitHub Actions as the source. "
+            "Configure Settings > Pages with visibility matching the repository "
+            "and GitHub Actions as the source. "
             "Private Pages requires an organization with GitHub Enterprise Cloud."
         )
     site_url = pages.get("html_url")
@@ -52,24 +55,25 @@ def main():
                       else "GitHub denied or failed the Pages configuration request.")
             raise ValueError(
                 reason + " Open " + settings
-                + " and configure Source = GitHub Actions and Visibility = Private, then rerun. "
+                + " and configure Source = GitHub Actions and visibility matching the repository, "
+                "then rerun. "
                 "Private Pages requires GitHub Enterprise Cloud. "
                 "If the site is already configured, have an administrator check organization "
                 "Pages policy and the workflow token's pages: read permission. "
                 "A private repository alone does not make its Pages site private."
             ) from None
-        site_url = private_site_url(repository, pages, args.expected_url)
+        site_url = validated_site_url(repository, pages, args.expected_url)
         with Path(os.environ["GITHUB_OUTPUT"]).open("a") as output:
             output.write("site_url=" + site_url + "\n")
-        print("Confirmed private repository and private, Actions-managed Pages site.")
+        print("Confirmed matching repository and Pages visibility and an Actions-managed site.")
         return 0
     except (ValueError, KeyError, OSError, subprocess.SubprocessError) as error:
         message = str(error)
         annotation = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
-        print("::error title=Private Pages publication blocked::" + annotation, file=sys.stderr)
+        print("::error title=Pages publication blocked::" + annotation, file=sys.stderr)
         if os.environ.get("GITHUB_STEP_SUMMARY"):
             with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as summary:
-                summary.write("## Private Pages publication blocked\n\n" + message
+                summary.write("## Pages publication blocked\n\n" + message
                               + "\n\nNo Pages site was created or made public.\n")
         return 1
 

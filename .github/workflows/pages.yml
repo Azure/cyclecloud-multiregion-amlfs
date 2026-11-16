@@ -1,4 +1,4 @@
-name: Publish private documentation
+name: Publish documentation
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: private-github-pages
+  group: github-pages
   cancel-in-progress: false
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
         with:
           persist-credentials: false
       # Never auto-enable Pages: repository privacy does not make the site private.
-      - name: Require private repository and Pages visibility
+      - name: Validate repository and Pages visibility
         id: privacy
         env:
           GH_TOKEN: ${{ github.token }}
@@ -42,7 +42,7 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: website/package-lock.json
-      - name: Build for the private Pages URL
+      - name: Build for the configured Pages URL
         working-directory: website
         env:
           DOCUSAURUS_SITE_URL: ${{ steps.privacy.outputs.site_url }}
@@ -67,11 +67,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Recheck privacy and URL immediately before deployment
+      - name: Recheck visibility and URL immediately before deployment
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SITE_URL: ${{ needs.build.outputs.site_url }}
         run: python3 ci/pages.py --expected-url "$EXPECTED_SITE_URL"
-      - name: Publish private Pages site
+      - name: Publish Pages site
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
